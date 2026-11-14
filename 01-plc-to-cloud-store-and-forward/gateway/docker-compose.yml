@@ -1,0 +1,67 @@
+# Gateway stack: NATS gateway server (JetStream) + metrics relay.
+# Runs on the Mac for development, on Raspberry Pi 2 later.
+# All addresses come from .env (copy .env.example).
+name: plant-gateway
+
+volumes:
+  nats-gateway-data:
+
+services:
+  # NATS gateway: JetStream domain "gateway", accepts the edge as a leaf
+  # node and is itself a leaf node of the hub
+  nats-gateway:
+    image: nats:2.10-alpine
+    container_name: nats-gateway
+    command: ["-c", "/etc/nats/gateway.conf"]
+    environment:
+      - HUB_LEAF_URL=${HUB_LEAF_URL}
+    ports:
+      - "${GATEWAY_NATS_PORT:-4222}:4222"       # clients / nats CLI
+      - "${GATEWAY_LEAF_PORT:-7422}:7422"       # leaf node port the edge dials
+      - "${GATEWAY_MONITOR_PORT:-8222}:8222"    # monitoring
+    volumes:
+      - ./nats/gateway.conf:/etc/nats/gateway.conf:ro
+      - nats-gateway-data:/data/jetstream
+    extra_hosts:
+      - "host.docker.internal:host-gateway"     # needed on Linux (RPi); harmless on Mac
+    restart: unless-stopped
+
+  # Creates the PLANT_GATEWAY stream at startup, then stays up for `nats` CLI use
+  nats-box-gateway:
+    image: natsio/nats-box:latest
+    container_name: nats-box-gateway
+    environment:
+      - NATS_URL=nats://nats-gateway:4222
+    entrypoint: ["/streams/create-stream.sh", "/streams/gateway.json"]
+    volumes:
+      - ./nats/streams:/streams:ro
+    depends_on:
+      - nats-gateway
+    restart: on-failure
+
+  # Exposes nats-gateway monitoring as Prometheus metrics (scraped by Fluent Bit)
+  nats-exporter-gateway:
+    image: natsio/prometheus-nats-exporter:latest
+    container_name: nats-exporter-gateway
+    command: ["-varz", "-connz", "-subz", "-leafz", "-jsz=all", "-use_internal_server_name", "http://nats-gateway:8222"]
+    depends_on:
+      - nats-gateway
+    restart: unless-stopped
+
+  # Receives the edge metrics, adds the gateway's, forwards both to the hub
+  fluentbit-gateway:
+    image: fluent/fluent-bit:3.2
+    container_name: fluentbit-gateway
+    command: ["-c", "/fluent-bit/etc/fluent-bit.yaml"]
+    environment:
+      - HUB_FLUENTBIT_HOST=${HUB_FLUENTBIT_HOST}
+      - HUB_FLUENTBIT_PORT=${HUB_FLUENTBIT_PORT}
+    ports:
+      - "${GATEWAY_FLUENTBIT_PORT:-24224}:24224"  # forward input the edge sends to
+    volumes:
+      - ./fluent-bit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - nats-exporter-gateway
+    restart: unless-stopped

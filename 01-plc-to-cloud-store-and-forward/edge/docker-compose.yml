@@ -1,0 +1,77 @@
+# Edge device stack: OPC UA connector + NATS edge server (JetStream) +
+# metrics relay. Runs on the Mac for development, on Raspberry Pi 1 later.
+# All addresses come from .env (copy .env.example).
+name: plant-edge
+
+volumes:
+  nats-edge-data:
+
+services:
+  # Reads the CODESYS tags over OPC UA and publishes them to JetStream
+  opcua-connector:
+    build: ./opcua-connector
+    container_name: opcua-connector
+    environment:
+      - OPCUA_ENDPOINT=${OPCUA_ENDPOINT}
+      - NATS_URL=nats://nats-edge:4222
+      - CONFIG_FILE=/etc/opcua-connector/config.yaml
+    volumes:
+      - ./opcua-connector/config.yaml:/etc/opcua-connector/config.yaml:ro
+    depends_on:
+      - nats-edge
+    restart: unless-stopped
+
+  # NATS edge server: JetStream domain "edge", leaf node of the gateway
+  nats-edge:
+    image: nats:2.10-alpine
+    container_name: nats-edge
+    command: ["-c", "/etc/nats/edge.conf"]
+    environment:
+      - GATEWAY_LEAF_URL=${GATEWAY_LEAF_URL}
+    ports:
+      - "${EDGE_NATS_PORT:-4222}:4222"        # clients / nats CLI
+      - "${EDGE_MONITOR_PORT:-8222}:8222"     # monitoring
+    volumes:
+      - ./nats/edge.conf:/etc/nats/edge.conf:ro
+      - nats-edge-data:/data/jetstream
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # needed on Linux (RPi); harmless on Mac
+    restart: unless-stopped
+
+  # Creates the PLANT_EDGE stream at startup, then stays up for `nats` CLI use
+  nats-box-edge:
+    image: natsio/nats-box:latest
+    container_name: nats-box-edge
+    environment:
+      - NATS_URL=nats://nats-edge:4222
+    entrypoint: ["/streams/create-stream.sh", "/streams/edge.json"]
+    volumes:
+      - ./nats/streams:/streams:ro
+    depends_on:
+      - nats-edge
+    restart: on-failure
+
+  # Exposes nats-edge monitoring as Prometheus metrics (scraped by Fluent Bit)
+  nats-exporter-edge:
+    image: natsio/prometheus-nats-exporter:latest
+    container_name: nats-exporter-edge
+    command: ["-varz", "-connz", "-subz", "-leafz", "-jsz=all", "-use_internal_server_name", "http://nats-edge:8222"]
+    depends_on:
+      - nats-edge
+    restart: unless-stopped
+
+  # Forwards the edge metrics one hop up, to the gateway's Fluent Bit
+  fluentbit-edge:
+    image: fluent/fluent-bit:3.2
+    container_name: fluentbit-edge
+    command: ["-c", "/fluent-bit/etc/fluent-bit.yaml"]
+    environment:
+      - GATEWAY_FLUENTBIT_HOST=${GATEWAY_FLUENTBIT_HOST}
+      - GATEWAY_FLUENTBIT_PORT=${GATEWAY_FLUENTBIT_PORT}
+    volumes:
+      - ./fluent-bit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - nats-exporter-edge
+    restart: unless-stopped

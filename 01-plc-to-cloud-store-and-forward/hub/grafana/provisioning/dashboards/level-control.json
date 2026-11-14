@@ -1,0 +1,885 @@
+{
+  "uid": "level-control",
+  "title": "Level Control (Factory I/O + CODESYS)",
+  "tags": [
+    "plant",
+    "nats"
+  ],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Level (PV)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"level_meter\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 30.0}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: cm",
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 1,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Setpoint (SP)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"setpoint\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 30.0}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: cm",
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 2,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Fill valve",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"fill_valve\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 10.0}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 3,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Discharge valve",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"discharge_valve\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 10.0}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 4,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Outflow",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"outflow\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 10.0}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 5,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "State",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"start_light\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "STOPPED",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "RUNNING",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 6,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tank level vs setpoint (cm)",
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"level_meter\" or r.item == \"setpoint\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 30.0}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: cm",
+          "min": 0,
+          "max": 300,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*level_meter.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Level (PV)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*setpoint.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Setpoint (SP)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 7,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Error (SP - PV)",
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"level_meter\" or r.item == \"setpoint\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 30.0}))\n  |> last()\n  |> group()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"item\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({_time: r._time, error_cm: r.setpoint - r.level_meter}))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: cm",
+          "decimals": 1,
+          "min": -50,
+          "max": 50,
+          "displayName": "Error",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": -10
+              },
+              {
+                "color": "green",
+                "value": -3
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "id": 8,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Inflow: fill valve (PID output, %)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"fill_valve\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 10.0}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "lineWidth": 2,
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 10,
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*fill_valve.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Fill valve (PID output)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 9,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Outflow: demand, discharge valve and outflow (%)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"discharge_demand\" or r.item == \"discharge_valve\" or r.item == \"outflow\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({r with _value: r._value * 10.0}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*discharge_demand.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Discharge demand (knob)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*discharge_valve.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Discharge valve (PLC output)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*outflow.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Outflow (meter)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 10,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    },
+    {
+      "type": "state-timeline",
+      "title": "Machine state and operator actions",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-ds"
+          },
+          "refId": "A",
+          "query": "sel = (r) => r._measurement == \"levelcontrol\" and r._field == \"value\" and (r.item == \"start_light\" or r.item == \"stop_light\" or r.item == \"reset_light\" or r.item == \"start_button\" or r.item == \"stop_button\" or r.item == \"reset_button\")\nbefore = from(bucket: \"plant\")\n  |> range(start: -30d, stop: v.timeRangeStart)\n  |> filter(fn: sel)\n  |> last()\n  |> map(fn: (r) => ({r with _time: v.timeRangeStart}))\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nduring = from(bucket: \"plant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: sel)\n  |> keep(columns: [\"_time\", \"_value\", \"item\"])\nall = union(tables: [before, during]) |> group(columns: [\"item\"]) |> sort(columns: [\"_time\"])\nheld = all |> last() |> map(fn: (r) => ({r with _time: v.timeRangeStop}))\nunion(tables: [all, held])\n  |> group(columns: [\"item\"])\n  |> sort(columns: [\"_time\"])"
+        }
+      ],
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "off",
+                  "color": "#3a3a3a",
+                  "index": 0
+                },
+                "1": {
+                  "text": "on",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3a3a3a",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*start_light.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Running (start light)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*stop_light.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stopped (stop light)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*reset_light.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Reset light"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*start_button.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Start button"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*stop_button.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stop button (NC)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*reset_button.*"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Reset button"
+              }
+            ]
+          }
+        ]
+      },
+      "id": 11,
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-ds"
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

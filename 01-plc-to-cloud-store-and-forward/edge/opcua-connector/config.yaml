@@ -1,0 +1,37 @@
+# OPC UA -> NATS tag map for the Factory I/O "Level Control" scene.
+# Tags live in the CODESYS global variable list "FIO".
+# ${VAR} values come from the environment (see ../.env).
+
+opcua:
+  endpoint: ${OPCUA_ENDPOINT}
+  # Must match what the CODESYS OPC UA server allows.
+  security_policy: None        # None | Basic256Sha256
+  security_mode: None          # None | Sign | SignAndEncrypt
+  # cert_file / key_file: client certificate, only for secure modes
+  sampling_interval: 100ms     # CODESYS MinimumSamplingInterval is 100 ms
+  publishing_interval: 500ms
+  node_prefix: "ns=4;s=|var|CODESYS Control Win V3 x64.Application.FIO."
+
+nats:
+  url: ${NATS_URL}
+  subject_prefix: plant.levelcontrol   # subjects: plant.levelcontrol.<name>
+
+# name: last subject token   node: FIO variable (appended to node_prefix)
+tags:
+  # Sensors and operator inputs (Factory I/O -> PLC)
+  - { name: level_meter,     node: iLevelMeter }     # Float, 0..10
+  - { name: outflow,         node: iFlowMeter }      # Float, 0..10 (meter on the discharge pipe)
+  - { name: setpoint,        node: iSetpoint }       # Float, 0..10 (knob)
+  - { name: discharge_demand, node: iDischargeDemand } # Float, 0..10 (knob)
+  - { name: start_button,    node: iStart }          # Bool
+  - { name: stop_button,     node: iStop }           # Bool, normally closed
+  - { name: reset_button,    node: iReset }          # Bool
+  # Actuators and indicators (PLC -> Factory I/O)
+  - { name: fill_valve,      node: oFillValve }      # Float, 0..10 (PID output)
+  - { name: discharge_valve, node: oDischargeValve } # Float, 0..10 (follows demand while running)
+  - { name: sp_display,      node: oSP }             # Int, cm
+  - { name: pv_display,      node: oPV }             # Int, cm
+  - { name: discharge_display, node: oDischargeDisplay } # Int, %
+  - { name: start_light,     node: oStartLight }     # Bool, running
+  - { name: stop_light,      node: oStopLight }      # Bool
+  - { name: reset_light,     node: oResetLight }     # Bool
